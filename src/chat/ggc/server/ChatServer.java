@@ -3,6 +3,8 @@ package chat.ggc.server;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -10,7 +12,7 @@ public class ChatServer
 {
 	private DatagramSocket socket;
 	private volatile boolean running;
-	private Thread manage, receive;
+	private Thread manage, receive, send;
 	
 	private ArrayList<ServerClient> clients = new ArrayList<ServerClient>();
 	
@@ -28,7 +30,7 @@ public class ChatServer
 	{
 		System.out.println("Server started");
 		running = true;
-		manageClients();
+//		manageClients();//TODO not sure if I need this thread
 		receive();
 		Scanner input = new Scanner(System.in);
 		while(running)
@@ -38,7 +40,36 @@ public class ChatServer
 			{
 				closeServer();
 			}
+			else
+			{
+				sendToAll("/m/" + text + "/e/");
+			}
 		}
+	}
+	
+	private void sendToAll(String text)
+	{
+		byte[] data = text.getBytes();
+		for(ServerClient client : clients)
+		{
+			send(data, client.getIP(), client.getPort());
+		}
+	}
+	
+	private void send(final byte[] data, final InetAddress ip, final int port)
+	{
+		send = new Thread(new Runnable() {
+			public void run()
+			{
+				DatagramPacket packet = new DatagramPacket(data, data.length, ip, port);
+				try {
+					socket.send(packet);
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		send.start();
 	}
 	
 	private void manageClients()
@@ -65,6 +96,7 @@ public class ChatServer
 					DatagramPacket packet = new DatagramPacket(data, data.length);
 					try {
 						socket.receive(packet);
+					}catch (SocketException e){	
 					}catch(IOException e) {
 						e.printStackTrace();
 					}
@@ -80,14 +112,16 @@ public class ChatServer
 		String str = new String(packet.getData());
 		if(str.startsWith("/c/"))
 		{
-			System.out.println("A new user connected");
 			String name = str.split("/c/|/e/")[1];
 			System.out.println("The user " + name + " connected");
 			clients.add(new ServerClient(name, packet.getAddress(), packet.getPort()));
 		}
-		else
+		else if(str.startsWith("/m/"))
 		{
-			System.out.println("User sent " + str.split("/m/|/e/")[1]);
+			String name = "<" + str.split("/u/|/e/")[1] + ">: ";
+			String msg = name + str.split("/m/|/e/")[2];
+			System.out.println(msg);
+			sendToAll("/m/" + msg + "/e/");
 		}
 	}
 	

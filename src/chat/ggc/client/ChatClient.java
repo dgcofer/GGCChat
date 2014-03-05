@@ -17,10 +17,11 @@ public class ChatClient
 	private DatagramSocket socket;
 	private volatile boolean running;
 	
-	public ChatClient(String...args)
+	public ChatClient(String ip, int port, String username)
 	{
-		this.hostIP = args[0];
-		this.name = args[1];
+		this.hostIP = ip;
+		this.serverPort = port;
+		this.name = username;
 		openConnection();
 		runClient();
 	}
@@ -71,7 +72,7 @@ public class ChatClient
 		new Thread(new Runnable() {
 			public void run()
 			{
-				String msg = "/m/" + str + "/e/";
+				String msg = "/m//u/"+ name + "/e/" + str + "/e/";
 				byte[] data = msg.getBytes();
 				DatagramPacket packet = new DatagramPacket(data, data.length, serverIP, serverPort);
 				try
@@ -96,6 +97,7 @@ public class ChatClient
 					DatagramPacket packet = new DatagramPacket(data, data.length);
 					try {
 						socket.receive(packet);
+					}catch(SocketException e){
 					}catch(IOException e) {
 						e.printStackTrace();
 					}
@@ -107,17 +109,32 @@ public class ChatClient
 	
 	private void process(DatagramPacket packet)
 	{
-		
+		String str = new String(packet.getData());
+		if(str.startsWith("/m/"))
+		{
+			String msg = str.split("/m/|/e/")[1];
+			System.out.println(msg);
+		}
 	}
 	
 	private void closeClient()
 	{
+		System.out.println("Closing Client");
 		running = false;
 		socket.close();
 	}
 	
 	public static void main(String[] args)
 	{
-		new ChatClient(args);
+		if (args.length < 3) badArgumentMessage();
+		String ip = args[0];
+		int port = Integer.parseInt(args[1]);
+		String username = args[2];
+		new ChatClient(ip, port, username);
+	}
+	
+	private static void badArgumentMessage()
+	{
+		System.out.println("Must pass proper arguments \"java ChatClient IP port username\"");
 	}
 }
