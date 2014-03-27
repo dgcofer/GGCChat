@@ -4,15 +4,20 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-public class ChatServer
+import chat.ggc.utilities.MsgReceiver;
+import chat.ggc.utilities.MsgSender;
+import chat.ggc.utilities.PacketProcessor;
+
+public class ChatServer implements PacketProcessor
 {
 	private DatagramSocket socket;
 	private volatile boolean running;
-	private Thread manage, receive, send;
+	private volatile boolean showRaw;
+	private Thread receiver;
 	
 	private ArrayList<ServerClient> clients = new ArrayList<ServerClient>();
 	
@@ -20,18 +25,20 @@ public class ChatServer
 	{
 		try {
 			socket = new DatagramSocket(port);
-			runServer();
 		} catch (IOException e){
 			e.printStackTrace();
 		}
 	}
 	
-	private void runServer()
+	public void runServer()
 	{
 		System.out.println("Server started");
+		//TODO Find way to display the server ip here
+		System.out.println("Port: " + socket.getLocalPort());
 		running = true;
-//		manageClients();//TODO not sure if I need this thread
-		receive();
+		showRaw = true;
+		receiver = new MsgReceiver(this, socket);
+		receiver.start();
 		Scanner input = new Scanner(System.in);
 		while(running)
 		{
@@ -40,9 +47,22 @@ public class ChatServer
 			{
 				closeServer();
 			}
+			else if(text.equals("/show"))
+			{
+				showRaw = (showRaw)? false : true;
+			}
+			else if(text.equals("/clients"))
+			{
+				System.out.println("Clients online");
+				System.out.println("================");
+				for (ServerClient client: clients)
+				{
+					System.out.println(client.getName());					
+				}
+			}
 			else
 			{
-				sendToAll("/m/" + text + "/e/");
+				sendToAll("/m/<Server>: " + text + "/e/");
 			}
 		}
 	}
@@ -52,77 +72,47 @@ public class ChatServer
 		byte[] data = text.getBytes();
 		for(ServerClient client : clients)
 		{
-			send(data, client.getIP(), client.getPort());
+			send(data, client);
 		}
 	}
 	
-	private void send(final byte[] data, final InetAddress ip, final int port)
+	private void send(byte[] data, ServerClient client)
 	{
-		send = new Thread(new Runnable() {
-			public void run()
-			{
-				DatagramPacket packet = new DatagramPacket(data, data.length, ip, port);
-				try {
-					socket.send(packet);
-				} catch(IOException e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		Thread send = new MsgSender(socket, data, client);
 		send.start();
 	}
 	
-	private void manageClients()
-	{
-		manage = new Thread(new Runnable() {
-			public void run()
-			{
-				while(running)
-				{
-				}
-			}
-		}, "Manage");
-		manage.start();
-	}
-	
-	private void receive()
-	{
-		receive = new Thread(new Runnable() {
-			public void run()
-			{
-				while(running)
-				{
-					byte[] data = new byte[1024];
-					DatagramPacket packet = new DatagramPacket(data, data.length);
-					try {
-						socket.receive(packet);
-					}catch (SocketException e){	
-					}catch(IOException e) {
-						e.printStackTrace();
-					}
-					process(packet);
-				}
-			}
-		}, "Receive");
-		receive.start();
-	}
-	
-	private void process(DatagramPacket packet)
+	public void processPacket(DatagramPacket packet)
 	{
 		String str = new String(packet.getData());
 		if(str.startsWith("/c/"))
 		{
 			String name = str.split("/c/|/e/")[1];
 			System.out.println("The user " + name + " connected");
-			clients.add(new ServerClient(name, packet.getAddress(), packet.getPort()));
+			InetAddress ip = packet.getAddress();
+			int port = packet.getPort();
+			ServerClient client = new ServerClient(name, ip, port);
+			
+			String welcome = "/m/Welcome " + name + "/e/";
+			send(welcome.getBytes(), client);
+			sendToAll("/m/User " + name + " connected/e/");
+			clients.add(client);
 		}
 		else if(str.startsWith("/m/"))
 		{
-			String name = "<" + str.split("/u/|/e/")[1] + ">: ";
-			String msg = name + str.split("/m/|/e/")[2];
-			System.out.println(msg);
+			String[] split = str.split("/m/|/u/|/e/");
+			String name = "<" + split[2] + ">: ";
+			String msg = name + split[3];
+			if(showRaw){
+				System.out.println(msg);
+			}
 			sendToAll("/m/" + msg + "/e/");
 		}
+	}
+	
+	public boolean isRunning()
+	{
+		return running;
 	}
 	
 	private void closeServer()
@@ -140,7 +130,8 @@ public class ChatServer
 		
 		try{
 			port = Integer.parseInt(args[0]);
-			new ChatServer(port);
+			ChatServer chat = new ChatServer(port);
+			chat.runServer();
 		}catch(NumberFormatException e)
 		{
 			badArgumentMessage();

@@ -5,13 +5,13 @@ import java.net.InetAddress;
 public class ServerClient
 {
 	private String name;
-	private InetAddress ip;
+	private InetAddress address;
 	private int port;
 	
-	public ServerClient(String name, InetAddress ip, int port)
+	public ServerClient(String name, InetAddress address, int port)
 	{
 		this.name = name;
-		this.ip = ip;
+		this.address = address;
 		this.port = port;
 	}
 	
@@ -20,9 +20,9 @@ public class ServerClient
 		return name;
 	}
 	
-	public InetAddress getIP()
+	public InetAddress getAddress()
 	{
-		return ip;
+		return address;
 	}
 	
 	public int getPort()

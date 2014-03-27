@@ -1,6 +1,5 @@
 package chat.ggc.client;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -8,41 +7,38 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-public class ChatClient
+import chat.ggc.utilities.MsgReceiver;
+import chat.ggc.utilities.MsgSender;
+import chat.ggc.utilities.PacketProcessor;
+
+public class ChatClient implements PacketProcessor
 {
 	private String hostIP;
-	private String name;
+	private String userName;
 	private InetAddress serverIP;
-	private int serverPort = 12345;
+	private int serverPort;
 	private DatagramSocket socket;
 	private volatile boolean running;
+	private Thread receiver;
 	
 	public ChatClient(String ip, int port, String username)
 	{
 		this.hostIP = ip;
 		this.serverPort = port;
-		this.name = username;
-		openConnection();
-		runClient();
+		this.userName = username;
 	}
 	
 	private void openConnection()
 	{
-		String msg = "/c/" + name + "/e/";
-		byte[] data = msg.getBytes();
 		try
 		{
 			socket = new DatagramSocket();
 			serverIP = InetAddress.getByName(hostIP);
-			DatagramPacket packet = new DatagramPacket(data, data.length, serverIP, serverPort);
-			socket.send(packet);
+			send("/c/"+ userName + "/e/");
 		} catch (UnknownHostException e)
 		{
 			e.printStackTrace();
 		} catch (SocketException e)
-		{
-			e.printStackTrace();
-		} catch (IOException e)
 		{
 			e.printStackTrace();
 		}
@@ -51,7 +47,8 @@ public class ChatClient
 	private void runClient()
 	{
 		running = true;
-		receive();
+		receiver = new MsgReceiver(this, socket);
+		receiver.start();
 		Scanner input = new Scanner(System.in);
 		while(running)
 		{
@@ -62,52 +59,19 @@ public class ChatClient
 			}
 			else
 			{
-				send(str);
+				String formattedName = "/m//u/" + userName + "/u/";
+				send(formattedName + str + "/e/");
 			}
 		}
 	}
 	
-	private void send(final String str)
+	private void send(String str)
 	{
-		new Thread(new Runnable() {
-			public void run()
-			{
-				String msg = "/m//u/"+ name + "/e/" + str + "/e/";
-				byte[] data = msg.getBytes();
-				DatagramPacket packet = new DatagramPacket(data, data.length, serverIP, serverPort);
-				try
-				{
-					socket.send(packet);
-				} catch (IOException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		}).start();
+		Thread send = new MsgSender(socket, str.getBytes(), serverIP, serverPort);
+		send.start();
 	}
-	
-	private void receive()
-	{
-		new Thread(new Runnable() {
-			public void run()
-			{
-				while(running)
-				{
-					byte[] data = new byte[1024];
-					DatagramPacket packet = new DatagramPacket(data, data.length);
-					try {
-						socket.receive(packet);
-					}catch(SocketException e){
-					}catch(IOException e) {
-						e.printStackTrace();
-					}
-					process(packet);
-				}
-			}
-		}).start();
-	}
-	
-	private void process(DatagramPacket packet)
+		
+	public void processPacket(DatagramPacket packet)
 	{
 		String str = new String(packet.getData());
 		if(str.startsWith("/m/"))
@@ -115,6 +79,11 @@ public class ChatClient
 			String msg = str.split("/m/|/e/")[1];
 			System.out.println(msg);
 		}
+	}
+	
+	public boolean isRunning()
+	{
+		return running;
 	}
 	
 	private void closeClient()
@@ -130,11 +99,14 @@ public class ChatClient
 		String ip = args[0];
 		int port = Integer.parseInt(args[1]);
 		String username = args[2];
-		new ChatClient(ip, port, username);
+		ChatClient client = new ChatClient(ip, port, username);
+		client.openConnection();
+		client.runClient();
 	}
 	
 	private static void badArgumentMessage()
 	{
 		System.out.println("Must pass proper arguments \"java ChatClient IP port username\"");
+		System.exit(0);
 	}
 }
