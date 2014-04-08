@@ -20,15 +20,18 @@ public class ChatClient implements PacketProcessor
 	private DatagramSocket socket;
 	private volatile boolean running;
 	private Thread receiver;
+	private ClientGui gui;
 	
 	public ChatClient(String ip, int port, String username)
 	{
 		this.hostIP = ip;
 		this.serverPort = port;
 		this.userName = username;
+		gui = new ClientGui();
+		gui.setVisible(true);
 	}
 	
-	private void openConnection()
+	public void openConnection()
 	{
 		try
 		{
@@ -44,7 +47,7 @@ public class ChatClient implements PacketProcessor
 		}
 	}
 	
-	private void runClient()
+	public void runClient()
 	{
 		running = true;
 		receiver = new MsgReceiver(this, socket);
@@ -78,6 +81,7 @@ public class ChatClient implements PacketProcessor
 		{
 			String msg = str.split("/m/|/e/")[1];
 			System.out.println(msg);
+			gui.setMsg(msg);
 		}
 	}
 	
