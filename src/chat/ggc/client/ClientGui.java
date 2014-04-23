@@ -17,14 +17,18 @@ import java.awt.SystemColor;
 import java.awt.Font;
 
 import javax.swing.border.BevelBorder;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 
 @SuppressWarnings("serial")
-public class ClientGui extends JFrame implements ActionListener
+public class ClientGui extends JFrame
 {
 	private JPanel contentPane;
 	private JTextField txtMessage;
-	
-	public JTextArea console;//TODO change this to a getter method
+
+	private JTextArea console;
+
+	private Client client;
 
 	/**
 	 * Create the frame.
@@ -33,7 +37,7 @@ public class ClientGui extends JFrame implements ActionListener
 	{
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch(Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		setTitle("GGC Chat");
@@ -44,34 +48,37 @@ public class ClientGui extends JFrame implements ActionListener
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setLocationRelativeTo(null);
 		setContentPane(contentPane);
-		
+
 		console = new JTextArea();
 		console.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		console.setForeground(SystemColor.textText);
 		console.setFont(new Font("Arial", Font.PLAIN, 11));
 		console.setEnabled(false);
-		
+
 		txtMessage = new JTextField();
+		txtMessage.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		txtMessage.setColumns(10);
-		
+
 		JTextArea clientsTxtArea = new JTextArea();
 		clientsTxtArea.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		clientsTxtArea.setEnabled(false);
-		
+
 		JButton btnSend = new JButton("Send");
-		btnSend.addActionListener(this);
+		btnSend.addActionListener(new ClientListener());
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_contentPane.createSequentialGroup()
-					.addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING, false)
-						.addComponent(txtMessage, Alignment.LEADING)
-						.addComponent(console, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 497, Short.MAX_VALUE))
+					.addContainerGap()
+					.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING, false)
+						.addComponent(txtMessage)
+						.addComponent(console, GroupLayout.DEFAULT_SIZE, 497, Short.MAX_VALUE))
 					.addGap(18)
-					.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING)
-						.addComponent(clientsTxtArea, GroupLayout.PREFERRED_SIZE, 161, GroupLayout.PREFERRED_SIZE)
-						.addComponent(btnSend))
-					.addContainerGap())
+					.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING, false)
+						.addGroup(gl_contentPane.createSequentialGroup()
+							.addComponent(btnSend)
+							.addGap(92))
+						.addComponent(clientsTxtArea)))
 		);
 		gl_contentPane.setVerticalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
@@ -79,24 +86,35 @@ public class ClientGui extends JFrame implements ActionListener
 					.addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
 						.addComponent(console, GroupLayout.PREFERRED_SIZE, 326, GroupLayout.PREFERRED_SIZE)
 						.addComponent(clientsTxtArea, GroupLayout.PREFERRED_SIZE, 326, GroupLayout.PREFERRED_SIZE))
-					.addGap(34)
+					.addGap(18)
 					.addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
 						.addComponent(txtMessage, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addComponent(btnSend))
-					.addContainerGap(22, Short.MAX_VALUE))
+						.addComponent(btnSend)))
 		);
 		contentPane.setLayout(gl_contentPane);
+
 	}
-	
+
+	public ClientGui(Client client)
+	{
+		this();
+		this.client = client;
+	}
+
 	public void setMsg(String msg)
 	{
 		console.append(msg + "\n\r");
 	}
 	
-	public void actionPerformed(ActionEvent e)
+	private class ClientListener implements ActionListener
 	{
-		String msg = txtMessage.getText();
-		setMsg(msg);
-		txtMessage.setText("");
+		public void actionPerformed(ActionEvent e)
+		{
+			String msg = txtMessage.getText();
+//			setMsg(msg);
+			String formattedName = "/m//u/" + client.getUsername() + "/u/";
+			client.send(formattedName + msg + "/e/");
+			txtMessage.setText("");
+		}
 	}
 }

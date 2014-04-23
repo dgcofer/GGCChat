@@ -98,6 +98,7 @@ public class LoginFrame extends JFrame implements ActionListener
 		}
 		dispose();
 		ChatClient client = new ChatClient(IP, port, userName);
+		client.createGui();
 		client.openConnection();
 		client.runClient();
 	}

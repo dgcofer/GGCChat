@@ -36,7 +36,7 @@ public class ChatServer implements PacketProcessor
 		System.out.println("Port: " + socket.getLocalPort());
 		running = true;
 		showRaw = true;
-		receiver = new MsgReceiver(this, socket);
+		receiver = new MsgReceiver(this);
 		receiver.start();
 		Scanner input = new Scanner(System.in);
 		while(running)
@@ -112,6 +112,11 @@ public class ChatServer implements PacketProcessor
 	public boolean isRunning()
 	{
 		return running;
+	}
+	
+	public DatagramSocket getSocket()
+	{
+		return socket;
 	}
 	
 	private void closeServer()

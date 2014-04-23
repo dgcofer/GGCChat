@@ -7,11 +7,13 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import javax.swing.SwingUtilities;
+
 import chat.ggc.utilities.MsgReceiver;
 import chat.ggc.utilities.MsgSender;
 import chat.ggc.utilities.PacketProcessor;
 
-public class ChatClient implements PacketProcessor
+public class ChatClient implements PacketProcessor, Client
 {
 	private String hostIP;
 	private String userName;
@@ -20,6 +22,7 @@ public class ChatClient implements PacketProcessor
 	private DatagramSocket socket;
 	private volatile boolean running;
 	private Thread receiver;
+	
 	private ClientGui gui;
 	
 	public ChatClient(String ip, int port, String username)
@@ -27,8 +30,6 @@ public class ChatClient implements PacketProcessor
 		this.hostIP = ip;
 		this.serverPort = port;
 		this.userName = username;
-		gui = new ClientGui();
-		gui.setVisible(true);
 	}
 	
 	public void openConnection()
@@ -50,25 +51,41 @@ public class ChatClient implements PacketProcessor
 	public void runClient()
 	{
 		running = true;
-		receiver = new MsgReceiver(this, socket);
+		receiver = new MsgReceiver(this);
 		receiver.start();
-		Scanner input = new Scanner(System.in);
-		while(running)
-		{
-			String str = input.nextLine();
-			if(str.equals("/quit"))
-			{
-				closeClient();
+		final Scanner input = new Scanner(System.in);
+		new Thread(new Runnable() {
+			public void run() {
+				while(running)
+				{
+					String str = input.nextLine();
+					if(str.equals("/quit"))
+					{
+						closeClient();
+					}
+					else
+					{
+						String formattedName = "/m//u/" + userName + "/u/";
+						send(formattedName + str + "/e/");
+					}
+				}
 			}
-			else
-			{
-				String formattedName = "/m//u/" + userName + "/u/";
-				send(formattedName + str + "/e/");
-			}
-		}
+		}).start();
 	}
 	
-	private void send(String str)
+	public void createGui()
+	{
+//		SwingUtilities.invokeLater(new Runnable() {
+//			public void run() {
+//				gui = new ClientGui();
+//				gui.setVisible(true);
+//			}
+//		});
+		gui = new ClientGui(this);
+		gui.setVisible(true);
+	}
+	
+	public void send(String str)
 	{
 		Thread send = new MsgSender(socket, str.getBytes(), serverIP, serverPort);
 		send.start();
@@ -90,6 +107,16 @@ public class ChatClient implements PacketProcessor
 		return running;
 	}
 	
+	public DatagramSocket getSocket()
+	{
+		return socket;
+	}
+	
+	public String getUsername()
+	{
+		return userName;
+	}
+	
 	private void closeClient()
 	{
 		System.out.println("Closing Client");
@@ -99,11 +126,11 @@ public class ChatClient implements PacketProcessor
 	
 	public static void main(String[] args)
 	{
-		if (args.length < 3) badArgumentMessage();
-		String ip = args[0];
-		int port = Integer.parseInt(args[1]);
-		String username = args[2];
-		ChatClient client = new ChatClient(ip, port, username);
+//		if (args.length < 3) badArgumentMessage();
+//		String ip = args[0];
+//		int port = Integer.parseInt(args[1]);
+//		String username = args[2];
+		ChatClient client = new ChatClient("localhost", 12345, "Derek");
 		client.openConnection();
 		client.runClient();
 	}

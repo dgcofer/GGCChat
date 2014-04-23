@@ -10,10 +10,11 @@ public class MsgReceiver extends Thread
 	private PacketProcessor processor;
 	private DatagramSocket socket;
 	
-	public MsgReceiver(PacketProcessor processor, DatagramSocket socket)
+	public MsgReceiver(PacketProcessor processor)
 	{
+		super("Reciever");
 		this.processor = processor;
-		this.socket = socket;
+		this.socket = processor.getSocket();
 	}
 	
 	@Override
