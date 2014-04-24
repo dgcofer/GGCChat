@@ -1,0 +1,42 @@
+<project name="GGCChat buildfile" default="build">
+	<property name="chat_bin" value="bin" />
+	<property name="chat_src" value="src" />
+	<property name="jar_bin" value="jars"/>
+	
+	<property name="chat_server_jar" value="GGCChatServer"/>
+	<property name="chat_client_jar" value="GGCChatClient"/>
+	
+	<property name="server_main" value="chat.ggc.server.ChatServer" />
+	<property name="client_main" value="chat.ggc.client.LoginFrame"/>
+	
+	<target name="init">
+		<mkdir dir="${chat_bin}" />
+		<mkdir dir="${jar_bin}" />
+	</target>
+	
+	<target name="build" depends="init">
+		<echo>Compiling Source files... </echo>
+		<javac srcdir="${chat_src}" destdir="${chat_bin}" />
+	</target>
+	
+	<target name="jars" depends="build">
+		<echo>Building jar files...</echo>
+		<jar destfile="${jar_bin}/${chat_server_jar}.jar" basedir="${chat_bin}">
+			<manifest>
+				<attribute name="Main-Class" value="${server_main}"/>
+			</manifest>
+		</jar>
+		<jar destfile="${jar_bin}/${chat_client_jar}.jar" basedir="${chat_bin}">
+			<manifest>
+				<attribute name="Main-Class" value="${client_main}" />
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="clean">
+		<delete dir="${chat_bin}" />
+		<delete dir="${jar_bin}" />
+	</target>
+	
+</project>
+
