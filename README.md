@@ -2,6 +2,12 @@ GGCChat
 =======
 A simple Server/Client chat program
 
+Building
+---------
+To build you need Apache [Ant](http://ant.apache.org/bindownload.cgi)
+After setting up ant to run on the command line run
+`ant jars` to create jar files for the server and client
+
 TODO
 =====
 - Need to implement a GUI for the client
