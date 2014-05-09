@@ -97,10 +97,15 @@ public class LoginFrame extends JFrame implements ActionListener
 			txtServPort.setText("Must be a number");
 		}
 		dispose();
-		ChatClient client = new ChatClient(IP, port, userName);
-		client.createGui();
+		final Client client = new Client(userName, IP, port);
 		client.openConnection();
-		client.runClient();
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				ClientGui gui = new ClientGui(client);
+				gui.setVisible(true);
+				gui.listen();
+			}
+		});
 	}
 	
 	/**

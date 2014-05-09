@@ -17,6 +17,7 @@ public class MsgSender extends Thread
 
 	public MsgSender(DatagramSocket socket, byte[] data, ServerClient client)
 	{
+		super("Sender");
 		this.socket = socket;
 		this.data = data;
 		this.address = client.getAddress();
@@ -25,6 +26,7 @@ public class MsgSender extends Thread
 
 	public MsgSender(DatagramSocket socket, byte[] data, InetAddress address, int port)
 	{
+		super("Sender");
 		this.socket = socket;
 		this.data = data;
 		this.address = address;
